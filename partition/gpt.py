@@ -3,7 +3,7 @@ import struct
 from collections import namedtuple as _nt
 from dataclasses import dataclass
 from io import (
-    IOBase,
+    FileIO,
 )
 from typing import (
     List,
@@ -93,7 +93,7 @@ def GPTEntry(b: bytes) -> GPTPartitionEntry:
 
 
 # or from file?
-def parse_entries(f: IOBase, n: int, size: int) -> List[GPTPartitionEntry]:
+def parse_entries(f: FileIO, n: int, size: int) -> List[GPTPartitionEntry]:
     chunk_reader = iter_chunk(f, size)
     entry_list = list()
     entry = None
