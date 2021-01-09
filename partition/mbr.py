@@ -1,6 +1,7 @@
 import struct
 
 from collections import namedtuple as _nt
+from dataclasses import dataclass
 from io import IOBase
 
 from .const import (
@@ -16,20 +17,28 @@ from .const import (
 )
 
 
+# TODO: add `__all__`
+
+
+
 mbr_header_struct = struct.Struct("<B3sB3sII") # Must be size of 16.
 assert mbr_header_struct.size == MBR_PART_LEN
 
-MBRPartHeader = _nt(
-    "MBRPartitionHeader",
-    (
-        "status",
-        "chs_addr_first",
-        "partition_type",
-        "chs_addr_last",
-        "lba_start",
-        "lba_count"
-    )
-)
+
+@dataclass
+class MBRPartitionHeader():
+    # ---
+    status: int
+    chs_addr_first: bytes
+    partition_type: int
+    chs_addr_last: bytes
+    lba_start: int
+    lba_count: int
+    # ---
+    @property
+    def is_gpt_protected(self) -> bool:
+        return self.partition_type == MBR_FSMARK_PROTECTIVE
+    pass
 
 
 class MBR():
@@ -42,7 +51,7 @@ class MBR():
         ]
         self._mark = b[MBR_CODE_MAX+MBR_PART_LEN*MBR_NPART:]
         self.headers = tuple(
-            MBRPartHeader(*mbr_header_struct.unpack(part_b))
+            MBRPartitionHeader(*mbr_header_struct.unpack(part_b))
             for part_b in (
                 self._headers_raw[i*MBR_PART_LEN:i*MBR_PART_LEN+MBR_PART_LEN]
                 for i in range(MBR_NPART)
@@ -51,7 +60,7 @@ class MBR():
         return
     
     def __str__(self) -> str:
-        return "<code={}[{}] headers={} mark={}>".format(
+        return "<MasterBootRecord code={}[{}] headers={} mark={}>".format(
             type(self._code), len(self._code), self.headers, self._mark
         )
     
