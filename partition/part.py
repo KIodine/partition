@@ -62,7 +62,7 @@ class PartitionTable():
 
         tmp_gpt = deepcopy(self.GPT)
         tmp_gpt.header_crc32 = 0
-        # NOTE: We assume dataclasses remains the order which fields are
+        # NOTE: We assume dataclasses retains the order which fields are
         #   declared, otherwise we are going to hardcode the fields.
         tmp_gpt_b = gpt_struct.pack(*astuple(tmp_gpt))
         tmp_crc32 = crc32(tmp_gpt_b[0:self.GPT.header_size])
