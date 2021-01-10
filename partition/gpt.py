@@ -21,9 +21,7 @@ from .const import (
 )
 
 
-# TODO: (Done)Modify program, no hardcoded LBA size.
-#   In that case, how to adapt struct format to variable LBA size?
-#   Just don't count reserved bytes?
+# TODO: Use `uuid` to produce human-readable GUID?
 
 
 __all__ = [
@@ -97,8 +95,6 @@ def GPTEntry(b: bytes) -> GPTPartitionEntry:
         *entry_struct.unpack(b)
     )
 
-
-# or from file?
 def parse_entries(f: FileIO, n: int, size: int) -> List[GPTPartitionEntry]:
     chunk_reader = iter_chunk(f, size)
     entry_list = list()

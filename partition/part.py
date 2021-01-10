@@ -36,8 +36,11 @@ class PartitionTable():
     """Partition tables from a disk."""
     # infos: MBR, GPT, size of partitions.
     def __init__(
-            self, f: FileIO, lba_size: int=LBA_SIZE,
+            self, f: FileIO, *, lba_size: int=LBA_SIZE,
         ):
+        # ---
+        self.raw_file = None
+        self.lba_size = lba_size
         self.MBR = None
         self.GPT = None
         self.gpt_partitions = None
@@ -47,6 +50,9 @@ class PartitionTable():
         # Avoid incomplete buffer.
         assert len(mbr_b) == lba_size
         self.MBR = mbr.MBR(mbr_b)
+        
+        self.raw_file = f
+        
         if self.MBR.headers[0].partition_type != MBR_FSMARK_PROTECTIVE:
             return
         
@@ -65,9 +71,6 @@ class PartitionTable():
         self.gpt_partitions = gpt.parse_entries(
             f, self.GPT.part_entries, self.GPT.part_entry_size
         )
-
-        if self.isGPT is False:
-            return
 
         # Verify checksum.
 
@@ -100,4 +103,3 @@ class PartitionTable():
     # def write_table(self) -> bytes:
 
     pass
-

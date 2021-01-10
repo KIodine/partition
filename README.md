@@ -9,9 +9,13 @@ Must run python > 3.7 for module `dataclasses`.
 
 ## Feature
 `partition` currently supports MBR and GPT parsing, may add writing some day.
+This library does not compare primary GPT with backup GPT, it assumes that you are
+supplying the primary GPT.
 
 ## Installation
-TODO
+```python
+pip install .
+```
 
 ## Usage
 ```python
