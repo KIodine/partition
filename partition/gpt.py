@@ -21,7 +21,7 @@ from .const import (
 )
 
 
-# TODO: Modify program, no hardcoded LBA size.
+# TODO: (Done)Modify program, no hardcoded LBA size.
 #   In that case, how to adapt struct format to variable LBA size?
 #   Just don't count reserved bytes?
 

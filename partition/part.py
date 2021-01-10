@@ -11,6 +11,7 @@ from zlib import crc32
 from .const import (
     LBA_SIZE,
     MBR_FSMARK_PROTECTIVE,
+    GPT_COMMON_HEADER_SZ
 )
 from .gpt import (
     gpt_header_sz,
@@ -54,7 +55,7 @@ class PartitionTable():
         
         gpt_hdr_sz = gpt_header_sz.unpack(gpt_b[:gpt_header_sz.size])
         assert len(gpt_hdr_sz) == 1
-        if gpt_hdr_sz[0] != 92:
+        if gpt_hdr_sz[0] != GPT_COMMON_HEADER_SZ:
             raise Warning(
                 "The header you're reading might have different structure "+
                 "that this implementation cannot parse properly!"

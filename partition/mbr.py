@@ -17,12 +17,15 @@ from .const import (
 )
 
 
-# TODO: add `__all__`
+__all__ = [
+    "MBRPartitionHeader",
+    "MBR",
+]
 
 
-
-mbr_header_struct = struct.Struct("<B3sB3sII") # Must be size of 16.
-assert mbr_header_struct.size == MBR_PART_LEN
+mbr_header_struct = struct.Struct("<446s64s2s")
+mbr_part_header_struct = struct.Struct("<B3sB3sII") # Must be size of 16.
+assert mbr_part_header_struct.size == MBR_PART_LEN
 
 
 @dataclass
@@ -44,19 +47,22 @@ class MBRPartitionHeader():
 class MBR():
     """Parse MBR from bytes."""
     def __init__(self, b: bytes):
-        assert len(b) == LBA_SIZE
-        self._code = b[0:MBR_CODE_MAX]
-        self._headers_raw = b[
-            MBR_CODE_MAX: MBR_CODE_MAX+MBR_PART_LEN*MBR_NPART
-        ]
-        self._mark = b[MBR_CODE_MAX+MBR_PART_LEN*MBR_NPART:LBA_SIZE]
-        self.headers = tuple(
-            MBRPartitionHeader(*mbr_header_struct.unpack(part_b))
-            for part_b in (
-                self._headers_raw[i*MBR_PART_LEN:i*MBR_PART_LEN+MBR_PART_LEN]
-                for i in range(MBR_NPART)
-            )
+        # LBA might not be 512, but MBR is fixed-sized so this should
+        # be fine. Just make sure there's enough stuff to parse.
+        assert len(b) >= LBA_SIZE
+        # > Use `struct`?
+        tmp_struct = mbr_header_struct.unpack(
+            b[:mbr_header_struct.size]
         )
+        self._code = tmp_struct[0]
+        self._headers_raw = tmp_struct[1]
+        self._mark = tmp_struct[2]
+        self.headers = tuple(
+            MBRPartitionHeader(*mbr_part_header_struct.unpack(part_b))
+            for part_b in struct.unpack("<16s16s16s16s", self._headers_raw)
+        )
+        assert self.mark == MBR_MARK_STR
+        
         return
     
     def __str__(self) -> str:
@@ -70,5 +76,5 @@ class MBR():
     
     @property
     def mark(self) -> bytes:
-        return self.mark
+        return self._mark
     pass

@@ -1,4 +1,6 @@
 # --- Basic
+# Common size of LBA, but standard suggests that do not assume
+# LBA would always be 512.
 LBA_SIZE = 512
 
 # --- MBR
@@ -13,6 +15,7 @@ MBR_PART_ACTIV = 0x80
 MBR_FSMARK_PROTECTIVE = 0xEE
 
 # --- GPT
+GPT_COMMON_HEADER_SZ = 92
 GPT_TYPE_NONE = b'\x00'*16
 GPT_HEADER_SIZE = 512
 GPT_ENTRY_SIZE = 128
