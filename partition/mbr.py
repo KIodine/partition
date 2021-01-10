@@ -1,6 +1,7 @@
 import struct
 
 from collections import namedtuple as _nt
+from dataclasses import dataclass
 from io import IOBase
 
 from .const import (
@@ -16,42 +17,56 @@ from .const import (
 )
 
 
-mbr_header_struct = struct.Struct("<B3sB3sII") # Must be size of 16.
-assert mbr_header_struct.size == MBR_PART_LEN
-
-MBRPartHeader = _nt(
+__all__ = [
     "MBRPartitionHeader",
-    (
-        "status",
-        "chs_addr_first",
-        "partition_type",
-        "chs_addr_last",
-        "lba_start",
-        "lba_count"
-    )
-)
+    "MBR",
+]
+
+
+mbr_header_struct = struct.Struct("<446s64s2s")
+mbr_part_header_struct = struct.Struct("<B3sB3sII") # Must be size of 16.
+assert mbr_part_header_struct.size == MBR_PART_LEN
+
+
+@dataclass
+class MBRPartitionHeader():
+    # ---
+    status: int
+    chs_addr_first: bytes
+    partition_type: int
+    chs_addr_last: bytes
+    lba_start: int
+    lba_count: int
+    # ---
+    @property
+    def is_gpt_protected(self) -> bool:
+        return self.partition_type == MBR_FSMARK_PROTECTIVE
+    pass
 
 
 class MBR():
     """Parse MBR from bytes."""
     def __init__(self, b: bytes):
-        assert len(b) == LBA_SIZE
-        self._code = b[0:MBR_CODE_MAX]
-        self._headers_raw = b[
-            MBR_CODE_MAX: MBR_CODE_MAX+MBR_PART_LEN*MBR_NPART
-        ]
-        self._mark = b[MBR_CODE_MAX+MBR_PART_LEN*MBR_NPART:]
-        self.headers = tuple(
-            MBRPartHeader(*mbr_header_struct.unpack(part_b))
-            for part_b in (
-                self._headers_raw[i*MBR_PART_LEN:i*MBR_PART_LEN+MBR_PART_LEN]
-                for i in range(MBR_NPART)
-            )
+        # LBA might not be 512, but MBR is fixed-sized so this should
+        # be fine. Just make sure there's enough stuff to parse.
+        assert len(b) >= LBA_SIZE
+        # > Use `struct`?
+        tmp_struct = mbr_header_struct.unpack(
+            b[:mbr_header_struct.size]
         )
+        self._code = tmp_struct[0]
+        self._headers_raw = tmp_struct[1]
+        self._mark = tmp_struct[2]
+        self.headers = tuple(
+            MBRPartitionHeader(*mbr_part_header_struct.unpack(part_b))
+            for part_b in struct.unpack("<16s16s16s16s", self._headers_raw)
+        )
+        assert self.mark == MBR_MARK_STR
+        
         return
     
     def __str__(self) -> str:
-        return "<code={}[{}] headers={} mark={}>".format(
+        return "<MasterBootRecord code={}[{}] headers={} mark={}>".format(
             type(self._code), len(self._code), self.headers, self._mark
         )
     
@@ -61,5 +76,5 @@ class MBR():
     
     @property
     def mark(self) -> bytes:
-        return self.mark
+        return self._mark
     pass
