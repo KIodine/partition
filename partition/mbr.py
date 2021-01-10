@@ -49,7 +49,7 @@ class MBR():
         self._headers_raw = b[
             MBR_CODE_MAX: MBR_CODE_MAX+MBR_PART_LEN*MBR_NPART
         ]
-        self._mark = b[MBR_CODE_MAX+MBR_PART_LEN*MBR_NPART:]
+        self._mark = b[MBR_CODE_MAX+MBR_PART_LEN*MBR_NPART:LBA_SIZE]
         self.headers = tuple(
             MBRPartitionHeader(*mbr_header_struct.unpack(part_b))
             for part_b in (

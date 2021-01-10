@@ -20,6 +20,12 @@ from .const import (
     GPT_TYPE_NONE,
 )
 
+
+# TODO: Modify program, no hardcoded LBA size.
+#   In that case, how to adapt struct format to variable LBA size?
+#   Just don't count reserved bytes?
+
+
 __all__ = [
     "GPT",
     "GPTHeader",
@@ -28,9 +34,9 @@ __all__ = [
     "parse_entries",
 ]
 
-
-gpt_struct = struct.Struct("<8s4sII4sQQQQ16sQIII420s")
-assert gpt_struct.size == LBA_SIZE
+gpt_header_sz = struct.Struct("<12xI") # read header size only.
+gpt_struct = struct.Struct("<8s4sII4sQQQQ16sQIII") #420s")
+#assert gpt_struct.size == LBA_SIZE
 entry_struct = struct.Struct("<16s16sQQQ72s")
 
 
@@ -51,7 +57,7 @@ class GPTHeader():
     part_entries: int
     part_entry_size: int        # usually 128.
     part_entries_crc32: int
-    reserved_1: bytes
+    #reserved_1: bytes
     # ---
     @property
     def disk_size(self):
@@ -79,9 +85,9 @@ class GPTPartitionEntry():
 
 
 def GPT(b: bytes) -> GPTHeader:
-    assert len(b) == LBA_SIZE
+    assert len(b) >= LBA_SIZE
     return GPTHeader(
-        *gpt_struct.unpack(b)
+        *gpt_struct.unpack(b[:gpt_struct.size])
     )
 
 def GPTEntry(b: bytes) -> GPTPartitionEntry:

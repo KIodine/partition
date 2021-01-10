@@ -12,7 +12,10 @@ from .const import (
     LBA_SIZE,
     MBR_FSMARK_PROTECTIVE,
 )
-from .gpt import gpt_struct
+from .gpt import (
+    gpt_header_sz,
+    gpt_struct,
+)
 
 
 # NOTE: The UEFI reference does not mention which CRC32 it is using,
@@ -31,30 +34,43 @@ __all__ = [
 class PartitionTable():
     """Partition tables from a disk."""
     # infos: MBR, GPT, size of partitions.
-    def __init__(self, f: FileIO):
+    def __init__(
+            self, f: FileIO, lba_size: int=LBA_SIZE,
+        ):
         self.MBR = None
         self.GPT = None
         self.gpt_partitions = None
         # ---
         # > Keep raw buffers?
-        mbr_b = f.read(LBA_SIZE)
-        assert len(mbr_b) == LBA_SIZE
+        mbr_b = f.read(lba_size)
+        # Avoid incomplete buffer.
+        assert len(mbr_b) == lba_size
         self.MBR = mbr.MBR(mbr_b)
         if self.MBR.headers[0].partition_type != MBR_FSMARK_PROTECTIVE:
             return
         
-        gpt_b = f.read(LBA_SIZE)
-        assert len(gpt_b) == LBA_SIZE
+        gpt_b = f.read(lba_size)
+        assert len(gpt_b) == lba_size
+        
+        gpt_hdr_sz = gpt_header_sz.unpack(gpt_b[:gpt_header_sz.size])
+        assert len(gpt_hdr_sz) == 1
+        if gpt_hdr_sz[0] != 92:
+            raise Warning(
+                "The header you're reading might have different structure "+
+                "that this implementation cannot parse properly!"
+            )
+
         self.GPT = gpt.GPT(gpt_b)
         self.gpt_partitions = gpt.parse_entries(
             f, self.GPT.part_entries, self.GPT.part_entry_size
         )
 
-        # Do verify checksum?
         if self.isGPT is False:
             return
 
-        f.seek(LBA_SIZE*2, SEEK_SET)
+        # Verify checksum.
+
+        f.seek(lba_size*self.GPT.part_start_lba, SEEK_SET)
         tmp_crc32 = crc32(
             f.read(self.GPT.part_entries*self.GPT.part_entry_size)
         )
